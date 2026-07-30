@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daraz Clone - Online Shopping in Nepal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="top-bar__left">Save More on App</div>
+      <div class="top-bar__right">
+        <a href="/admin">Admin Panel</a>
+        <a href="/dashboard" id="dashboard-link">User Dashboard</a>
+        <a href="#">Become a Seller</a>
+        <a href="#auth">Login</a>
+        <a href="#auth">Sign Up</a>
+        <span>भाषा परिवर्तन</span>
+      </div>
+    </div>
+
+    <header class="main-header">
+      <div class="brand">daraz</div>
+      <form class="search-bar">
+        <input type="text" placeholder="Search in Daraz" />
+        <button type="submit">Search</button>
+      </form>
+      <a class="cart" href="#checkout">Cart (<span id="cart-count">0</span>)</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <aside class="categories-sidebar">
+          <a href="#">Mobile Phones</a>
+          <a href="#">Laptops</a>
+          <a href="#">Fashion</a>
+          <a href="#">Home & Living</a>
+          <a href="#">Groceries</a>
+          <a href="#">Sports</a>
+          <a href="#">Beauty</a>
+          <a href="#">Toys</a>
+        </aside>
+
+        <div class="hero-content">
+          <div class="hero-banner big-banner">
+            <div>
+              <p class="eyebrow">Mega Deals</p>
+              <h1>Big savings on your favorite essentials</h1>
+              <p>Exclusive discounts on fashion, gadgets and home needs.</p>
+            </div>
+          </div>
+          <div class="hero-mini-grid">
+            <div class="mini-banner orange">Flash Sale</div>
+            <div class="mini-banner dark">App Only Offers</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="auth" class="auth-card">
+        <div class="auth-header">
+          <h3>Account</h3>
+          <div class="auth-toggle">
+            <button id="show-login" class="active">Login</button>
+            <button id="show-signup">Sign Up</button>
+          </div>
+        </div>
+        <form id="auth-form" class="auth-form">
+          <input id="auth-name" type="text" placeholder="Full name" />
+          <input id="auth-email" type="email" placeholder="Email" required />
+          <input id="auth-password" type="password" placeholder="Password" required />
+          <button type="submit">Continue</button>
+          <p id="auth-message"></p>
+          <p class="demo-credentials">Demo accounts: admin@example.com / admin123, user@example.com / user123</p>
+        </form>
+      </section>
+
+      <section class="flash-sale">
+        <div class="section-heading">
+          <h3>Flash Sale</h3>
+          <a href="#">Shop All</a>
+        </div>
+        <div id="product-grid" class="product-grid"></div>
+      </section>
+
+      <section id="checkout" class="checkout-section">
+        <div class="section-heading">
+          <h3>Checkout</h3>
+        </div>
+        <div class="checkout-grid">
+          <div class="checkout-card">
+            <h4>Cart Items</h4>
+            <div id="cart-items"></div>
+            <div class="summary-row"><strong>Total</strong><strong id="cart-total">Rs. 0</strong></div>
+          </div>
+          <div class="checkout-card">
+            <h4>Payment & Shipping</h4>
+            <input id="customer-name" type="text" placeholder="Your name" />
+            <input id="customer-email" type="email" placeholder="Email" />
+            <textarea id="address" placeholder="Shipping address"></textarea>
+            <select id="payment-method">
+              <option>Cash on Delivery</option>
+              <option>eSewa</option>
+              <option>Card</option>
+            </select>
+            <button id="place-order">Place Order</button>
+            <p id="order-message"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="orders-section">
+        <div class="section-heading">
+          <h3>Your Orders</h3>
+        </div>
+        <div id="order-history" class="order-history"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 Daraz Clone. Built for demo purposes.</p>
+    </footer>
+
+    <script>
+      let products = [];
+      let cart = [];
+      let user = null;
+      let mode = 'login';
+      let orders = [];
+
+      const savedUser = JSON.parse(localStorage.getItem('daraz-user') || 'null');
+      const savedCart = JSON.parse(localStorage.getItem('daraz-cart') || 'null');
+
+      const authNameInput = document.getElementById('auth-name');
+      const authEmailInput = document.getElementById('auth-email');
+      const authPasswordInput = document.getElementById('auth-password');
+      const authMessage = document.getElementById('auth-message');
+      const authForm = document.getElementById('auth-form');
+      const showLoginButton = document.getElementById('show-login');
+      const showSignupButton = document.getElementById('show-signup');
+      const dashboardLink = document.getElementById('dashboard-link');
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        showLoginButton.classList.toggle('active', nextMode === 'login');
+        showSignupButton.classList.toggle('active', nextMode === 'signup');
+        authNameInput.style.display = nextMode === 'signup' ? 'block' : 'none';
+        authForm.querySelector('button').textContent = nextMode === 'login' ? 'Login' : 'Create Account';
+      }
+
+      function persistCart() {
+        localStorage.setItem('daraz-cart', JSON.stringify(cart));
+      }
+
+      function persistUser(userData) {
+        if (userData) {
+          localStorage.setItem('daraz-user', JSON.stringify(userData));
+        } else {
+          localStorage.removeItem('daraz-user');
+        }
+      }
+
+      async function loadProducts() {
+        const response = await fetch('/api/products');
+        products = await response.json();
+        const container = document.getElementById('product-grid');
+        container.innerHTML = products.map((product) => `
+          <article class="product-card">
+            <img class="product-image" src="${product.image}" alt="${product.name}" />
+            <h4>${product.name}</h4>
+            <div class="price-row">
+              <strong>Rs. ${product.price.toLocaleString()}</strong>
+              <span>Rs. ${product.oldPrice.toLocaleString()}</span>
+            </div>
+            <button class="add-to-cart" data-id="${product.id}">Add to Cart</button>
+          </article>
+        `).join('');
+
+        document.querySelectorAll('.add-to-cart').forEach((button) => {
+          button.addEventListener('click', () => addToCart(Number(button.dataset.id)));
+        });
+      }
+
+      function addToCart(productId) {
+        const product = products.find((item) => item.id === productId);
+        if (!product) return;
+
+        const existing = cart.find((item) => item.id === productId);
+        if (existing) existing.qty += 1;
+        else cart.push({ ...product, qty: 1 });
+        persistCart();
+        renderCart();
+      }
+
+      function renderCart() {
+        const cartItems = document.getElementById('cart-items');
+        document.getElementById('cart-count').textContent = cart.reduce((sum, item) => sum + item.qty, 0);
+        const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+        document.getElementById('cart-total').textContent = `Rs. ${total.toLocaleString()}`;
+
+        if (cart.length === 0) {
+          cartItems.innerHTML = '<p>Your cart is empty.</p>';
+          return;
+        }
+
+        cartItems.innerHTML = cart.map((item) => `
+          <div class="cart-item">
+            <span>${item.name} x ${item.qty}</span>
+            <strong>Rs. ${(item.price * item.qty).toLocaleString()}</strong>
+          </div>
+        `).join('');
+      }
+
+      async function submitAuth(event) {
+        event.preventDefault();
+        const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/signup';
+        const payload = {
+          name: authNameInput.value.trim(),
+          email: authEmailInput.value.trim(),
+          password: authPasswordInput.value.trim()
+        };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (response.ok) {
+          user = data;
+          persistUser(user);
+          document.getElementById('customer-name').value = user.name;
+          document.getElementById('customer-email').value = user.email;
+          authMessage.textContent = mode === 'login' ? 'Welcome back!' : 'Account created successfully.';
+          loadOrders(user.email);
+          window.location.href = user.role === 'admin' ? '/admin' : '/dashboard';
+        } else {
+          authMessage.textContent = data.message || 'Authentication failed.';
+        }
+      }
+
+      async function loadOrders(email) {
+        if (!email) {
+          document.getElementById('order-history').innerHTML = '<p>Sign in to view your orders.</p>';
+          return;
+        }
+
+        const response = await fetch(`/api/orders/${email}`);
+        orders = response.ok ? await response.json() : [];
+        const history = document.getElementById('order-history');
+        if (orders.length === 0) {
+          history.innerHTML = '<p>No previous orders.</p>';
+          return;
+        }
+        history.innerHTML = orders.map((order) => `
+          <div class="order-card">
+            <div><strong>Order #${order.id}</strong></div>
+            <div>${order.payment || 'Cash on Delivery'}</div>
+            <div>Rs. ${order.total.toLocaleString()}</div>
+          </div>
+        `).join('');
+      }
+
+      async function placeOrder() {
+        const name = document.getElementById('customer-name').value.trim();
+        const email = document.getElementById('customer-email').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const payment = document.getElementById('payment-method').value;
+        const message = document.getElementById('order-message');
+
+        if (!name || !email || !address || cart.length === 0) {
+          message.textContent = 'Please complete the form and add a product to the cart.';
+          return;
+        }
+
+        const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerName: name, customerEmail: email, address, payment, items: cart, total })
+        });
+
+        if (response.ok) {
+          cart = [];
+          persistCart();
+          renderCart();
+          document.getElementById('customer-name').value = '';
+          document.getElementById('customer-email').value = '';
+          document.getElementById('address').value = '';
+          message.textContent = 'Order placed successfully.';
+          loadOrders(email);
+        } else {
+          message.textContent = 'Unable to place the order.';
+        }
+      }
+
+      showLoginButton.addEventListener('click', () => setMode('login'));
+      showSignupButton.addEventListener('click', () => setMode('signup'));
+      authForm.addEventListener('submit', submitAuth);
+      document.getElementById('place-order').addEventListener('click', placeOrder);
+      if (savedUser) {
+        user = savedUser;
+        document.getElementById('customer-name').value = user.name;
+        document.getElementById('customer-email').value = user.email;
+        authNameInput.value = user.name;
+        authEmailInput.value = user.email;
+        authPasswordInput.value = '';
+        authMessage.textContent = 'Welcome back!';
+        if (dashboardLink) {
+          dashboardLink.style.display = user.role !== 'admin' ? 'inline' : 'none';
+        }
+      }
+
+      if (savedCart && savedCart.length) {
+        cart = savedCart;
+      }
+
+      if (dashboardLink) {
+        dashboardLink.style.display = user && user.role !== 'admin' ? 'inline' : 'none';
+      }
+
+      setMode('login');
+      loadProducts();
+      renderCart();
+      loadOrders(user ? user.email : '');
+    </script>
+  </body>
+</html>
