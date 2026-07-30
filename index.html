@@ -244,7 +244,7 @@
           return;
         }
 
-        const response = await fetch(`/api/orders/${email}`);
+        const response = await fetch(`/api/orders?email=${encodeURIComponent(email)}`);
         orders = response.ok ? await response.json() : [];
         const history = document.getElementById('order-history');
         if (orders.length === 0) {
