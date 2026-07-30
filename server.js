@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
@@ -9,41 +8,54 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const usersPath = path.join(__dirname, 'data', 'users.json');
-const ordersPath = path.join(__dirname, 'data', 'orders.json');
-
 const seededUsers = [
   { id: 1, name: 'Admin User', email: 'admin@example.com', password: 'admin123', role: 'admin' },
   { id: 2, name: 'Demo Customer', email: 'user@example.com', password: 'user123', role: 'customer' }
 ];
 
-let users = [];
-if (fs.existsSync(usersPath)) {
-  users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-}
-
-seededUsers.forEach((seed) => {
-  const exists = users.some((user) => normalizeEmail(user.email) === normalizeEmail(seed.email));
-  if (!exists) {
-    users.push({ ...seed, id: Date.now() + Math.random() });
-  }
-});
-
-if (!fs.existsSync(usersPath) || users.length > 0) {
-  saveUsers();
-}
-
+let users = seededUsers.map((user) => ({ ...user }));
 let orders = [];
-if (fs.existsSync(ordersPath)) {
-  orders = JSON.parse(fs.readFileSync(ordersPath, 'utf8'));
-}
+let products = [
+  {
+    id: 1,
+    name: 'Wireless Headphones',
+    price: 2499,
+    oldPrice: 3499,
+    category: 'Electronics',
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 2,
+    name: 'Smart Watch',
+    price: 4999,
+    oldPrice: 6500,
+    category: 'Electronics',
+    image: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 3,
+    name: 'Portable Blender',
+    price: 1599,
+    oldPrice: 2000,
+    category: 'Home',
+    image: 'https://images.unsplash.com/photo-1570564261324-2baff1f8d1a5?auto=format&fit=crop&w=800&q=80'
+  },
+  {
+    id: 4,
+    name: 'Running Shoes',
+    price: 2199,
+    oldPrice: 2800,
+    category: 'Fashion',
+    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80'
+  }
+];
 
 function saveUsers() {
-  fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+  return true;
 }
 
 function saveOrders() {
-  fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
+  return true;
 }
 
 function normalizeEmail(email) {
